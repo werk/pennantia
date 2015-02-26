@@ -26,15 +26,28 @@ main =
     ]
 
 drawTree : Tree -> G.Form
-drawTree (Tree {stem, branches}) = G.group [G.group (drawStem 0.01 0 stem), G.group (List.map drawTree branches)]
+drawTree (Tree {stem, branches}) = G.group [drawStem [] 0.01 0 stem, G.group (List.map drawTree branches)]
 
-drawStem : Float -> Float -> Stem -> List G.Form
-drawStem step progress stem = 
-    if progress > 1 then []
-    else
-        let p = stem.positionProgress progress
-            width = stem.widthProgress progress
-        in (G.move p (G.filled green (G.circle (width / 2)))) :: (drawStem step (progress + step) stem)
+drawLine : List (Position, Float) -> G.Form
+drawLine list = 
+    let style = G.solid green in
+    let style' w = { style | width <- w, cap <- G.Round } in
+    let line ((p1, w1), (p2, w2)) = G.traced (style' ((w1 + w2) / 2)) (G.segment p1 p2) in
+    case list of
+        _ :: rest -> G.group (List.map line (zip list rest))
+        
+drawStem : List (Position, Float) -> Float -> Float -> Stem -> G.Form
+drawStem result step progress stem = 
+    if progress > 1 then drawLine result else
+    let p = stem.positionProgress progress
+        width = stem.widthProgress progress
+        new = (p, width)
+    in drawStem (new :: result) step (progress + max step (1 - width * 500)) stem
+
+zip xs ys = case (xs, ys) of
+    ([], _) -> []
+    (_, []) -> []
+    (x::xs, y::ys) -> (x, y) :: zip xs ys
 
 slope : (Float -> Position) -> Float -> Float
 slope f x = 
@@ -59,15 +72,16 @@ myTree2 = { myTree | branches <- [
         transformTree (-pi/2) (myTree.stem.widthProgress 0.8 * 5) (myTree.stem.positionProgress 0.8) (Tree myTree)
     ]}
 
+
 myTree3 = buildTree myTree.stem 0
 
-buildTree stem depth = if depth == 2 then Tree {stem = stem, branches = []} else
-    let branchCount = 10 in
-    let progresses = [1..branchCount] in
+buildTree stem depth = if depth == 3 then Tree {stem = stem, branches = []} else
+    let branchCount = 7 in
+    let progresses = [2 + depth..branchCount] in
     let branch index = 
             let progress = (index - 0.5) / branchCount in
             let angle = slope myTree.stem.positionProgress progress + pi/2 * if round(index) % 2 == 0 then -1 else 1 in
-            let width = myTree.stem.widthProgress progress * 5 in
+            let width = myTree.stem.widthProgress progress * 7 in
             let position = myTree.stem.positionProgress progress in
             transformTree angle width position <| buildTree stem (depth + 1)
     in

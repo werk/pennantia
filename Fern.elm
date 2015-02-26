@@ -8,7 +8,7 @@ import Debug
 type Fern = Fern { scale : Float, angle : Float, left : Maybe Fern, right : Maybe Fern, next : Maybe Fern }
 
 fern scale isRight = if
-    | scale <= 0.5 -> Nothing 
+    | scale <= 0.3 -> Nothing 
     | otherwise -> Just <|
         let rot = scale * scale in
         let rotation = if isRight then 0.05 / rot else -0.05 / rot in
@@ -38,7 +38,7 @@ main =
     let fern1 = fern 1 False in
     Signal.map (\now ->
         let _ = Debug.watch "now" now in
-        let growth = 0.1 + min 1 (sqrt now / 5) in
+        let growth = 0.1 + min 1 (now / 5) in
         G.collage 800 600 [G.moveY -300 <| G.scale 10 <| drawFern growth fern1]
     )
     frame
